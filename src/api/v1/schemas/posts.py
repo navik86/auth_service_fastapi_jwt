@@ -8,6 +8,8 @@ __all__ = (
     "PostListResponse",
 )
 
+from typing import List
+
 
 class PostBase(BaseModel):
     title: str
@@ -24,4 +26,4 @@ class PostModel(PostBase):
 
 
 class PostListResponse(BaseModel):
-    posts: list[PostModel] = []
+    posts: List[PostModel] = []

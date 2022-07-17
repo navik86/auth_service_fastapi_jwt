@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
+from sqlalchemy import Column, String
 from sqlmodel import Field, SQLModel
 
 __all__ = ("User",)
@@ -15,8 +15,8 @@ class User(SQLModel, table=True):
         index=True,
         nullable=False,
     )
-    username: Optional[int] = Field(nullable=False)
-    email: str = Field(nullable=False)
+    username: str = Field(sa_column=Column("username", String, unique=True))
+    email: str = Field(sa_column=Column("email", String, unique=True))
     password_hash: str = Field(nullable=False)
     is_superuser: bool = Field(nullable=False)
     is_active: bool = Field(nullable=False)
