@@ -1,4 +1,4 @@
-import uuid
+import uuid as uuid_pkg
 from datetime import datetime
 
 from sqlalchemy import Column, String
@@ -9,8 +9,8 @@ __all__ = ("User",)
 
 class User(SQLModel, table=True):
 
-    uuid:  uuid.UUID = Field(
-        default_factory=uuid.uuid4,
+    uuid:  uuid_pkg.UUID = Field(
+        default_factory=uuid_pkg.uuid4,
         primary_key=True,
         index=True,
         nullable=False,
