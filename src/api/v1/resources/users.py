@@ -1,10 +1,8 @@
-# from http import HTTPStatus
-# from typing import Optional
+from fastapi import APIRouter, Depends
 
-from fastapi import APIRouter, Depends, HTTPException
-
-# from src.api.v1.schemas import UserCreate, UserListResponse, UserModel
-# from src.services import PostService, get_post_service
+from src.api.v1.schemas import UserCreate
+from src.api.v1.schemas.users import UserModel
+from src.services.user import UserService, get_user_service
 
 router = APIRouter()
 
@@ -13,17 +11,17 @@ router = APIRouter()
 
 @router.post(
     path="/signup",
-    # response_model= ,
     summary="Регистрация на сайте",
     tags=["users"],
 )
-def signup():
-    pass
-
+def signup(user: UserCreate, user_service: UserService = Depends(get_user_service)) -> dict:
+    response = {"msg": "User created."}
+    user: dict = user_service.create_user(user=user)
+    response.update({"user": UserModel(**user)})
+    return response
 
 @router.post(
     path="/login",
-    # response_model= ,
     summary="Зайти на сайт",
     tags=["users"],
 )
@@ -33,7 +31,6 @@ def login():
 
 @router.post(
     path="/refresh",
-    # response_model= ,
     summary="Обновляет токен",
     tags=["users"],
 )
@@ -43,7 +40,6 @@ def refresh():
 
 @router.get(
     path="/users/me",
-    # response_model= ,
     summary="Смотреть свой профиль",
     tags=["users"],
 )
@@ -53,7 +49,6 @@ def get_user_info():
 
 @router.patch(
     path="/users/me",
-    # response_model= ,
     summary="Обновить информацию профиля",
     tags=["users"],
 )

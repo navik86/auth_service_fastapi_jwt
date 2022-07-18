@@ -18,6 +18,6 @@ class User(SQLModel, table=True):
     username: str = Field(sa_column=Column("username", String, unique=True))
     email: str = Field(sa_column=Column("email", String, unique=True))
     password_hash: str = Field(nullable=False)
-    is_superuser: bool = Field(nullable=False)
-    is_active: bool = Field(nullable=False)
+    is_superuser: bool = Field(default=True, nullable=False)
+    is_active: bool = Field(default=False, nullable=False)
     created_at: datetime = Field(default=datetime.utcnow(), nullable=False)
