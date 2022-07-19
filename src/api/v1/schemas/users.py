@@ -8,6 +8,8 @@ from pydantic import BaseModel
 __all__ = (
     "UserCreate",
     "UserModel",
+    "Token",
+    "UserLogin",
 )
 
 
@@ -25,13 +27,13 @@ class UserModel(UserBase):
     created_at: datetime
     is_superuser: bool
     is_active: bool
-#
-#
-# class UserUpdate(BaseModel):
-#     username: str = None
-#     email: EmailStr = None
-#
-#
-# class Token(BaseModel):
-#     access_token: str
-#     refresh_token: str
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str

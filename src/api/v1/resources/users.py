@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
-from src.api.v1.schemas import UserCreate
-from src.api.v1.schemas.users import UserModel
+from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin
 from src.services.user import UserService, get_user_service
 
 router = APIRouter()
@@ -20,13 +19,27 @@ def signup(user: UserCreate, user_service: UserService = Depends(get_user_servic
     response.update({"user": UserModel(**user)})
     return response
 
+
 @router.post(
     path="/login",
+    response_model=Token,
     summary="Зайти на сайт",
     tags=["users"],
 )
-def login():
-    pass
+def login(user: UserLogin, user_service: UserService = Depends(get_user_service)) -> Token:
+    user = user_service.authenticate_user(username=user.username, password=user.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    user_data = dict(UserModel(**user.dict()))
+    user_uuid = str(user_data["uuid"])
+    user_data["uuid"] = user_uuid
+    user_data["created_at"] = str(user_data["created_at"])
+
+    refresh_token = user_service.create_refresh_token(user_uuid)
+    refresh_uuid = user_service.get_uuid(refresh_token)
+    access_token = user_service.create_access_token(user_data, refresh_uuid)
+
+    return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
 
 @router.post(
