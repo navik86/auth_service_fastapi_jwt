@@ -47,6 +47,7 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
     refresh_uuid = user_service.get_uuid(refresh_token)
     access_token = user_service.create_access_token(user_data, refresh_uuid)
 
+    user_service.add_refresh_token(refresh_token)
     return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
 
@@ -65,6 +66,8 @@ def refresh(user_service: UserService = Depends(get_user_service),
             status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
         )
     user_uuid = payload["uuid"]
+    jti = payload["jti"]
+    user_service.remove_refresh_token(user_uuid, jti)
 
     user = user_service.get_user_by_uuid(user_uuid)
     user_data = dict(UserModel(**user.dict()))
@@ -83,8 +86,10 @@ def refresh(user_service: UserService = Depends(get_user_service),
     summary="Смотреть свой профиль",
     tags=["users"],
 )
-def get_user_info():
-    pass
+def get_user_info(user_service: UserService = Depends(get_user_service),
+                  token: str = Depends(reasable_oauth2)):
+    current_user = user_service.get_user_by_token(token)
+    return {"user": UserModel(**current_user)}
 
 
 @router.patch(

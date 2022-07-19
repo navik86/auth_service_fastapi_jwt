@@ -1,13 +1,20 @@
 from datetime import datetime, timedelta
 import uuid
 from functools import lru_cache
-from jose import jwt
+from jose import jwt, JWTError
 
 from passlib.hash import bcrypt
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlmodel import Session
-from src.api.v1.schemas import UserCreate
-from src.db import get_session, AbstractCache, get_cache
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
+
+from src.api.v1.schemas import UserCreate, UserModel
+from src.db import (AbstractCache,
+                    CacheRefreshToken,
+                    get_cache,
+                    get_session,
+                    get_access_cache,
+                    get_refresh_cache)
 from src.services import ServiceMixin
 
 from src.models import User
@@ -19,6 +26,16 @@ __all__ = ("UserService", "get_user_service")
 
 
 class UserService(ServiceMixin):
+
+    def __init__(self,
+                 cache: AbstractCache,
+                 access_cache: AbstractCache,
+                 refresh_cash: CacheRefreshToken,
+                 session: Session):
+        super().__init__(cache=cache, session=session)
+
+        self.blocked_access_tokens = access_cache
+        self.active_refresh_tokens = refresh_cash
 
     @classmethod
     def verify_password(cls, plain_password: str, hashed_password: str) -> bool:
@@ -65,9 +82,6 @@ class UserService(ServiceMixin):
 
     # ----------
 
-    def __init__(self, cache: AbstractCache, session: Session):
-        super().__init__(cache=cache, session=session)
-
     def create_user(self, user: UserCreate) -> dict:
         password_hash = self.hash_password(user.password)
         new_user = User(
@@ -86,6 +100,38 @@ class UserService(ServiceMixin):
     def get_user_by_uuid(self, user_uuid: str):
         return self.session.query(User).filter(User.uuid == user_uuid).first()
 
+    def get_user_by_token(self, token: str):
+        uuid = self.get_uuid(token)
+
+        if self.blocked_access_tokens.get(uuid):
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED, detail="Token was blocked"
+            )
+
+        try:
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            user_data = UserModel(**payload)
+        except JWTError:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
+            )
+
+        user = self.get_user_by_name(user_data.username)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user.dict()
+
+    def add_refresh_token(self, token: str):
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        self.active_refresh_tokens.add(payload["uuid"], payload["jti"])
+
+    def remove_refresh_token(self, uuid: str, jti: str):
+        current_token = self.active_refresh_tokens.get(uuid)
+        current_token.pop(current_token.index(jti))
+        self.active_refresh_tokens.clean(uuid)
+        if current_token:
+            self.active_refresh_tokens.add(uuid, *current_token)
+
     def authenticate_user(self, username: str, password: str):
         user = self.get_user_by_name(username)
         if not user:
@@ -98,7 +144,11 @@ class UserService(ServiceMixin):
 @lru_cache()
 def get_user_service(
         cache: AbstractCache = Depends(get_cache),
+        access_cache: AbstractCache = Depends(get_access_cache),
+        refresh_cache: CacheRefreshToken = Depends(get_refresh_cache),
         session: Session = Depends(get_session),
 ) -> UserService:
     return UserService(cache=cache,
+                       access_cache=access_cache,
+                       refresh_cash=refresh_cache,
                        session=session)

@@ -28,7 +28,29 @@ def startup():
     """Подключаемся к базам при старте сервера"""
     cache.cache = redis_cache.CacheRedis(
         cache_instance=redis.Redis(
-            host=config.REDIS_HOST, port=config.REDIS_PORT, max_connections=10
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+            max_connections=10,
+            decode_responses=True,
+            db=0
+        )
+    )
+    cache.blocked_access_tokens = redis_cache.CacheRedis(
+        cache_instance=redis.Redis(
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+            max_connections=10,
+            decode_responses=True,
+            db=1
+        )
+    )
+    cache.active_refresh_tokens = redis_cache.CacheRedis(
+        cache_instance=redis.Redis(
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+            max_connections=10,
+            decode_responses=True,
+            db=2
         )
     )
 
@@ -37,6 +59,8 @@ def startup():
 def shutdown():
     """Отключаемся от баз при выключении сервера"""
     cache.cache.close()
+    cache.active_refresh_tokens.close()
+    cache.blocked_access_tokens.close()
 
 
 # Подключаем роутеры к серверу
