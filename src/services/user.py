@@ -5,10 +5,10 @@ from jose import jwt, JWTError
 
 from passlib.hash import bcrypt
 from fastapi import Depends, HTTPException
-from sqlmodel import Session
+from sqlmodel import Session, select
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
-from src.api.v1.schemas import UserCreate, UserModel
+from src.api.v1.schemas import UserCreate, UserModel, UserUpdate
 from src.db import (AbstractCache,
                     CacheRefreshToken,
                     get_cache,
@@ -121,9 +121,27 @@ class UserService(ServiceMixin):
             raise HTTPException(status_code=404, detail="User not found")
         return user.dict()
 
+    def update_user_info(self, user: dict, data: UserUpdate) -> dict:
+        statement = select(User).where(User.username == user["username"])
+        results = self.session.exec(statement)
+        selected_user = results.one()
+        if data.username is not None:
+            selected_user.username = data.username
+        if data.email is not None:
+            selected_user.email = data.email
+
+        self.session.add(selected_user)
+        self.session.commit()
+        self.session.refresh(selected_user)
+
+        return selected_user.dict()
+
     def add_refresh_token(self, token: str):
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         self.active_refresh_tokens.add(payload["uuid"], payload["jti"])
+
+    def block_access_token(self, uuid: str):
+        self.blocked_access_tokens.set(uuid, "blocked")
 
     def remove_refresh_token(self, uuid: str, jti: str):
         current_token = self.active_refresh_tokens.get(uuid)

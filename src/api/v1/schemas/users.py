@@ -10,6 +10,7 @@ __all__ = (
     "UserModel",
     "Token",
     "UserLogin",
+    "UserUpdate",
 )
 
 
@@ -37,3 +38,8 @@ class Token(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class UserUpdate(BaseModel):
+    username: str = None
+    email: str = None

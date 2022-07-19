@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from starlette.status import HTTP_403_FORBIDDEN
 
-from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin
+from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin, UserUpdate
 from src.services.user import UserService, get_user_service
 
 from src.core.config import JWT_SECRET_KEY, JWT_EXPIRATION, JWT_ALGORITHM
 
 
 router = APIRouter()
-reasable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 
 # Создаем эндпойнты согласно файлу настроек postman collection
 
@@ -58,7 +58,7 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
     tags=["users"],
 )
 def refresh(user_service: UserService = Depends(get_user_service),
-            token: str = Depends(reasable_oauth2)) -> Token:
+            token: str = Depends(reusable_oauth2)) -> Token:
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     except JWTError:
@@ -87,7 +87,7 @@ def refresh(user_service: UserService = Depends(get_user_service),
     tags=["users"],
 )
 def get_user_info(user_service: UserService = Depends(get_user_service),
-                  token: str = Depends(reasable_oauth2)):
+                  token: str = Depends(reusable_oauth2)):
     current_user = user_service.get_user_by_token(token)
     return {"user": UserModel(**current_user)}
 
@@ -97,8 +97,29 @@ def get_user_info(user_service: UserService = Depends(get_user_service),
     summary="Обновить информацию профиля",
     tags=["users"],
 )
-def update_user_info():
-    pass
+def update_user_info(new_data: UserUpdate,
+                     user_service: UserService = Depends(get_user_service),
+                     token: str = Depends(reusable_oauth2)) -> dict:
+    """Updates user information"""
+    current_user = user_service.get_user_by_token(token)
+    new_user = user_service.update_user_info(current_user, new_data)
+    new_user_data = dict(UserModel(**new_user))
+    new_user_data["uuid"] = str(new_user_data["uuid"])
+    new_user_data["created_at"] = str(new_user_data["created_at"])
+
+    user_service.block_access_token(token)
+
+    response = {"msg": "Update is successful. Please use new access token."}
+    response.update({"user": new_user_data})
+
+    refresh_token = user_service.create_refresh_token(new_user_data["uuid"])
+    refresh_uuid = user_service.get_uuid(refresh_token)
+
+    access_token = user_service.create_access_token(new_user_data, refresh_uuid)
+
+    response.update({"access_token": access_token})
+
+    return response
 
 
 @router.post(
