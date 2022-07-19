@@ -83,6 +83,9 @@ class UserService(ServiceMixin):
     def get_user_by_name(self, username: str):
         return self.session.query(User).filter(User.username == username).first()
 
+    def get_user_by_uuid(self, user_uuid: str):
+        return self.session.query(User).filter(User.uuid == user_uuid).first()
+
     def authenticate_user(self, username: str, password: str):
         user = self.get_user_by_name(username)
         if not user:

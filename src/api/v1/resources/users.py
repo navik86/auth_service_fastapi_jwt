@@ -1,9 +1,17 @@
+from jose import jwt, JWTError
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from starlette.status import HTTP_403_FORBIDDEN
 
 from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin
 from src.services.user import UserService, get_user_service
 
+from src.core.config import JWT_SECRET_KEY, JWT_EXPIRATION, JWT_ALGORITHM
+
+
 router = APIRouter()
+reasable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 
 # Создаем эндпойнты согласно файлу настроек postman collection
 
@@ -44,11 +52,30 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
 
 @router.post(
     path="/refresh",
+    response_model=Token,
     summary="Обновляет токен",
     tags=["users"],
 )
-def refresh():
-    pass
+def refresh(user_service: UserService = Depends(get_user_service),
+            token: str = Depends(reasable_oauth2)) -> Token:
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
+        )
+    user_uuid = payload["uuid"]
+
+    user = user_service.get_user_by_uuid(user_uuid)
+    user_data = dict(UserModel(**user.dict()))
+    user_data["uuid"] = str(user_data["uuid"])
+    user_data["created_at"] = str(user_data["created_at"])
+
+    refresh_token = user_service.create_refresh_token(user_uuid=user_uuid)
+    refresh_uuid = user_service.get_uuid(refresh_token)
+    access_token = user_service.create_access_token(user_data, refresh_uuid)
+
+    return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
 
 @router.get(
