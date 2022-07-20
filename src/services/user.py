@@ -63,14 +63,13 @@ class UserService(ServiceMixin):
     def create_refresh_token(cls, user_uuid: str):
         now = datetime.utcnow()
         jti = str(uuid.uuid4())
-        exp = now + timedelta(days=30)
         payload = {
             "iat": now,
             "jti": jti,
             "type": "refresh",
             "uuid": user_uuid,
             "nbf": now,
-            "exp": exp
+            "exp": now + timedelta(days=30)
         }
         refresh_token = jwt.encode(payload, JWT_SECRET_KEY, JWT_ALGORITHM)
         return refresh_token
@@ -149,6 +148,9 @@ class UserService(ServiceMixin):
         self.active_refresh_tokens.clean(uuid)
         if current_token:
             self.active_refresh_tokens.add(uuid, *current_token)
+
+    def remove_all_refresh_tokens(self, uuid):
+        self.active_refresh_tokens.clean(uuid)
 
     def authenticate_user(self, username: str, password: str):
         user = self.get_user_by_name(username)

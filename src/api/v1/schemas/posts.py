@@ -9,6 +9,7 @@ __all__ = (
 )
 
 from typing import List
+# from pydantic.validators import UUID
 
 
 class PostBase(BaseModel):
@@ -23,6 +24,7 @@ class PostCreate(PostBase):
 class PostModel(PostBase):
     id: int
     created_at: datetime
+    # user_id: UUID
 
 
 class PostListResponse(BaseModel):

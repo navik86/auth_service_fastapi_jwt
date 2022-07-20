@@ -44,7 +44,7 @@ def startup():
             db=1
         )
     )
-    cache.active_refresh_tokens = redis_cache.CacheRedis(
+    cache.active_refresh_tokens = redis_cache.CacheRefreshToken(
         cache_instance=redis.Redis(
             host=config.REDIS_HOST,
             port=config.REDIS_PORT,

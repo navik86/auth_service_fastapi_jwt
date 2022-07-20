@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
+from src.core import config
+
 __all__ = (
     "AbstractCache",
     "get_cache",
     "get_access_cache",
     "get_refresh_cache"
 )
-
-from src.core import config
 
 
 class AbstractCache(ABC):

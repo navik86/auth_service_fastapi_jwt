@@ -7,7 +7,7 @@ from starlette.status import HTTP_403_FORBIDDEN
 from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin, UserUpdate
 from src.services.user import UserService, get_user_service
 
-from src.core.config import JWT_SECRET_KEY, JWT_EXPIRATION, JWT_ALGORITHM
+from src.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
 
 
 router = APIRouter()
@@ -48,6 +48,7 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
     access_token = user_service.create_access_token(user_data, refresh_uuid)
 
     user_service.add_refresh_token(refresh_token)
+
     return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
 
@@ -124,19 +125,30 @@ def update_user_info(new_data: UserUpdate,
 
 @router.post(
     path="/logout",
-    # response_model= ,
     summary="Выйти из аккаунта",
     tags=["users"],
 )
-def logout():
-    pass
+def logout(user_service: UserService = Depends(get_user_service),
+           token: str = Depends(reusable_oauth2)) -> dict:
+    payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    jti = payload["jti"]
+    uuid = payload["uuid"]
+    refresh_uuid = payload["refresh_uuid"]
+    user_service.block_access_token(jti)
+    user_service.remove_refresh_token(uuid, refresh_uuid)
+    return {"msg": "You have been logged out."}
 
 
 @router.post(
     path="/logout_all",
-    # response_model= ,
     summary="Выйти со всех устройств",
     tags=["users"],
 )
-def logout_all():
-    pass
+def logout_all(user_service: UserService = Depends(get_user_service),
+               token: str = Depends(reusable_oauth2)) -> dict:
+    payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    jti = payload["jti"]
+    uuid = payload["uuid"]
+    user_service.block_access_token(jti)
+    user_service.remove_all_refresh_tokens(uuid)
+    return {"msg": "You have been logged out from all devices."}
