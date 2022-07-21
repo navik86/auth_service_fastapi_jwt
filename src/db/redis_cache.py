@@ -1,4 +1,4 @@
-from typing import NoReturn, Optional, Union
+from typing import NoReturn, Optional, Union, List
 
 from src.core import config
 from src.db import AbstractCache
@@ -7,7 +7,7 @@ __all__ = ("CacheRedis", "CacheRefreshToken")
 
 
 class CacheRedis(AbstractCache):
-    def get(self, key: str) -> Optional[dict]:
+    def get(self, key: str):
         return self.cache.get(name=key)
 
     def set(

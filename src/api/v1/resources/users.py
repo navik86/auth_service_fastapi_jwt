@@ -1,3 +1,5 @@
+import uuid
+
 from jose import jwt, JWTError
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -42,12 +44,12 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
     user_uuid = str(user_data["uuid"])
     user_data["uuid"] = user_uuid
     user_data["created_at"] = str(user_data["created_at"])
+    refresh_uuid = str(uuid.uuid4())
 
-    refresh_token = user_service.create_refresh_token(user_uuid)
-    refresh_uuid = user_service.get_uuid(refresh_token)
+    refresh_token = user_service.create_refresh_token(user_uuid, refresh_uuid)
     access_token = user_service.create_access_token(user_data, refresh_uuid)
 
-    user_service.add_refresh_token(refresh_token)
+    user_service.add_refresh_token(user_uuid, refresh_uuid)
 
     return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
@@ -68,6 +70,7 @@ def refresh(user_service: UserService = Depends(get_user_service),
         )
     user_uuid = payload["uuid"]
     jti = payload["jti"]
+
     user_service.remove_refresh_token(user_uuid, jti)
 
     user = user_service.get_user_by_uuid(user_uuid)
@@ -75,9 +78,11 @@ def refresh(user_service: UserService = Depends(get_user_service),
     user_data["uuid"] = str(user_data["uuid"])
     user_data["created_at"] = str(user_data["created_at"])
 
-    refresh_token = user_service.create_refresh_token(user_uuid=user_uuid)
-    refresh_uuid = user_service.get_uuid(refresh_token)
+    refresh_uuid = str(uuid.uuid4())
+    refresh_token = user_service.create_refresh_token(user_uuid, refresh_uuid)
     access_token = user_service.create_access_token(user_data, refresh_uuid)
+
+    user_service.add_refresh_token(user_uuid, refresh_uuid)
 
     return Token(**{"access_token": access_token, "refresh_token": refresh_token})
 
@@ -107,14 +112,13 @@ def update_user_info(new_data: UserUpdate,
     new_user_data = dict(UserModel(**new_user))
     new_user_data["uuid"] = str(new_user_data["uuid"])
     new_user_data["created_at"] = str(new_user_data["created_at"])
+    refresh_uuid = user_service.get_refresh_uuid_from_access_token(token)
 
-    user_service.block_access_token(token)
+    id_token = user_service.get_id_token(token)
+    user_service.block_access_token(id_token)
 
-    response = {"msg": "Update is successful. Please use new access token."}
+    response = {"msg": "Update is successful. Please use new token."}
     response.update({"user": new_user_data})
-
-    refresh_token = user_service.create_refresh_token(new_user_data["uuid"])
-    refresh_uuid = user_service.get_uuid(refresh_token)
 
     access_token = user_service.create_access_token(new_user_data, refresh_uuid)
 

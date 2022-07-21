@@ -60,9 +60,8 @@ class UserService(ServiceMixin):
         return access_token
 
     @classmethod
-    def create_refresh_token(cls, user_uuid: str):
+    def create_refresh_token(cls, user_uuid: str, jti: str):
         now = datetime.utcnow()
-        jti = str(uuid.uuid4())
         payload = {
             "iat": now,
             "jti": jti,
@@ -100,9 +99,9 @@ class UserService(ServiceMixin):
         return self.session.query(User).filter(User.uuid == user_uuid).first()
 
     def get_user_by_token(self, token: str):
-        uuid = self.get_uuid(token)
+        id_token = self.get_id_token(token)
 
-        if self.blocked_access_tokens.get(uuid):
+        if self.blocked_access_tokens.get(id_token):
             raise HTTPException(
                 status_code=HTTP_401_UNAUTHORIZED, detail="Token was blocked"
             )
@@ -132,25 +131,33 @@ class UserService(ServiceMixin):
         self.session.add(selected_user)
         self.session.commit()
         self.session.refresh(selected_user)
-
         return selected_user.dict()
 
-    def add_refresh_token(self, token: str):
+    @staticmethod
+    def get_id_token(token: str):
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        self.active_refresh_tokens.add(payload["uuid"], payload["jti"])
+        return payload["jti"]
 
-    def block_access_token(self, uuid: str):
-        self.blocked_access_tokens.set(uuid, "blocked")
+    @staticmethod
+    def get_refresh_uuid_from_access_token(token: str):
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload["refresh_uuid"]
 
-    def remove_refresh_token(self, uuid: str, jti: str):
-        current_token = self.active_refresh_tokens.get(uuid)
-        current_token.pop(current_token.index(jti))
-        self.active_refresh_tokens.clean(uuid)
-        if current_token:
-            self.active_refresh_tokens.add(uuid, *current_token)
+    def add_refresh_token(self, user_uuid: str, id_token: str):
+        self.active_refresh_tokens.add(user_uuid, id_token)
 
-    def remove_all_refresh_tokens(self, uuid):
-        self.active_refresh_tokens.clean(uuid)
+    def block_access_token(self, id_token: str):
+        self.blocked_access_tokens.set(id_token, "протух))")
+
+    def remove_refresh_token(self, user_uuid: str, jti: str):
+        current_tokens = self.active_refresh_tokens.get(user_uuid)
+        current_tokens.pop(current_tokens.index(jti))
+        self.active_refresh_tokens.clean(user_uuid)
+        if current_tokens:
+            self.active_refresh_tokens.add(user_uuid, *current_tokens)
+
+    def remove_all_refresh_tokens(self, user_uuid):
+        self.active_refresh_tokens.clean(user_uuid)
 
     def authenticate_user(self, username: str, password: str):
         user = self.get_user_by_name(username)

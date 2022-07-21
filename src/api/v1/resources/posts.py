@@ -3,6 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.v1.resources.users import reusable_oauth2
 from src.api.v1.schemas import PostCreate, PostListResponse, PostModel
 from src.services import PostService, get_post_service
 
@@ -48,7 +49,10 @@ def post_detail(
     tags=["posts"],
 )
 def post_create(
-    post: PostCreate, post_service: PostService = Depends(get_post_service),
+    post: PostCreate,
+    post_service: PostService = Depends(get_post_service),
+    token: str = Depends(reusable_oauth2)
 ) -> PostModel:
+    post_service.check_jwt(token)
     post: dict = post_service.create_post(post=post)
     return PostModel(**post)
