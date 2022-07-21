@@ -1,26 +1,19 @@
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
 from functools import lru_cache
-from jose import jwt, JWTError
 
-from passlib.hash import bcrypt
 from fastapi import Depends, HTTPException
+from jose import JWTError, jwt
+from passlib.hash import bcrypt
 from sqlmodel import Session, select
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 
 from src.api.v1.schemas import UserCreate, UserModel, UserUpdate
-from src.db import (AbstractCache,
-                    CacheRefreshToken,
-                    get_cache,
-                    get_session,
-                    get_access_cache,
-                    get_refresh_cache)
-from src.services import ServiceMixin
-
+from src.core.config import JWT_ALGORITHM, JWT_EXPIRATION, JWT_SECRET_KEY
+from src.db import (AbstractCache, CacheRefreshToken, get_access_cache,
+                    get_cache, get_refresh_cache, get_session)
 from src.models import User
-
-from src.core.config import JWT_SECRET_KEY, JWT_EXPIRATION, JWT_ALGORITHM
-
+from src.services import ServiceMixin
 
 __all__ = ("UserService", "get_user_service")
 

@@ -3,13 +3,13 @@ from functools import lru_cache
 from typing import Optional
 
 from fastapi import Depends, HTTPException
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from sqlmodel import Session
 from starlette.status import HTTP_403_FORBIDDEN
 
 from src.api.v1.schemas import PostCreate, PostModel
-from src.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
-from src.db import AbstractCache, get_cache, get_session, get_access_cache
+from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from src.db import AbstractCache, get_access_cache, get_cache, get_session
 from src.models import Post
 from src.services import ServiceMixin
 

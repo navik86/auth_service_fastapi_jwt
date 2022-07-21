@@ -1,4 +1,4 @@
-from typing import NoReturn, Optional, Union, List
+from typing import List, NoReturn, Optional, Union
 
 from src.core import config
 from src.db import AbstractCache

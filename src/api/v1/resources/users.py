@@ -1,16 +1,14 @@
 import uuid
 
-from jose import jwt, JWTError
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from starlette.status import HTTP_403_FORBIDDEN
 
-from src.api.v1.schemas import UserCreate, UserModel, Token, UserLogin, UserUpdate
+from src.api.v1.schemas import (Token, UserCreate, UserLogin, UserModel,
+                                UserUpdate)
+from src.core.config import JWT_ALGORITHM, JWT_SECRET_KEY
 from src.services.user import UserService, get_user_service
-
-from src.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
-
 
 router = APIRouter()
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login")

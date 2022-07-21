@@ -5,7 +5,6 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel
 
-
 __all__ = ("Post",)
 
 
