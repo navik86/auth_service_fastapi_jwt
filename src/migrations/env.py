@@ -4,10 +4,12 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-from src.models import Post
+from src.core.config import DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
+
+
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -27,6 +29,9 @@ target_metadata = SQLModel.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+url = DATABASE_URL
+config.set_main_option("sqlalchemy.url", url)
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -37,7 +42,7 @@ def run_migrations_offline() -> None:
     Calls to context.execute() here emit the given string to the
     script output.
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,

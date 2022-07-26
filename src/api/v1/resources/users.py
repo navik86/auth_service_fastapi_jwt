@@ -22,6 +22,7 @@ reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
     tags=["users"],
 )
 def signup(user: UserCreate, user_service: UserService = Depends(get_user_service)) -> dict:
+    """Signup in service / registration"""
     response = {"msg": "User created."}
     user: dict = user_service.create_user(user=user)
     response.update({"user": UserModel(**user)})
@@ -35,6 +36,7 @@ def signup(user: UserCreate, user_service: UserService = Depends(get_user_servic
     tags=["users"],
 )
 def login(user: UserLogin, user_service: UserService = Depends(get_user_service)) -> Token:
+    """Login in service / get tokens"""
     user = user_service.authenticate_user(username=user.username, password=user.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -60,6 +62,7 @@ def login(user: UserLogin, user_service: UserService = Depends(get_user_service)
 )
 def refresh(user_service: UserService = Depends(get_user_service),
             token: str = Depends(reusable_oauth2)) -> Token:
+    """Update tokens"""
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     except JWTError:
@@ -92,6 +95,7 @@ def refresh(user_service: UserService = Depends(get_user_service),
 )
 def get_user_info(user_service: UserService = Depends(get_user_service),
                   token: str = Depends(reusable_oauth2)):
+    """Get user information"""
     current_user = user_service.get_user_by_token(token)
     return {"user": UserModel(**current_user)}
 
@@ -132,6 +136,7 @@ def update_user_info(new_data: UserUpdate,
 )
 def logout(user_service: UserService = Depends(get_user_service),
            token: str = Depends(reusable_oauth2)) -> dict:
+    """Logout from current device/browser"""
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     jti = payload["jti"]
     uuid = payload["uuid"]
@@ -148,6 +153,7 @@ def logout(user_service: UserService = Depends(get_user_service),
 )
 def logout_all(user_service: UserService = Depends(get_user_service),
                token: str = Depends(reusable_oauth2)) -> dict:
+    """Logout from all device/browser"""
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     jti = payload["jti"]
     uuid = payload["uuid"]

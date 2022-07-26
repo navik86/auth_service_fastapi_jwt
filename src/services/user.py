@@ -43,11 +43,12 @@ class UserService(ServiceMixin):
         jti = str(uuid.uuid4())
         payload = data.copy()
         now = datetime.utcnow()
-        payload.update({"iat": now,
+        exp = now + timedelta(seconds=JWT_EXPIRATION)
+        payload.update({"iat": int(now.timestamp()),
                         "jti": jti,
                         "type": "access",
-                        "nbf": now,
-                        "exp": now + timedelta(seconds=JWT_EXPIRATION),
+                        "nbf": int(now.timestamp()),
+                        "exp": int(exp.timestamp()),
                         "refresh_uuid": refresh_uuid})
         access_token = jwt.encode(payload, JWT_SECRET_KEY, JWT_ALGORITHM)
         return access_token
@@ -55,13 +56,14 @@ class UserService(ServiceMixin):
     @classmethod
     def create_refresh_token(cls, user_uuid: str, jti: str):
         now = datetime.utcnow()
+        exp = now + timedelta(days=30)
         payload = {
-            "iat": now,
+            "iat": int(now.timestamp()),
             "jti": jti,
             "type": "refresh",
             "uuid": user_uuid,
-            "nbf": now,
-            "exp": now + timedelta(days=30)
+            "nbf": int(now.timestamp()),
+            "exp": int(exp.timestamp())
         }
         refresh_token = jwt.encode(payload, JWT_SECRET_KEY, JWT_ALGORITHM)
         return refresh_token
